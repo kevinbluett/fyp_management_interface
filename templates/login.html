@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block body %}
+            <div class="posts">
+                <h1 class="content-subhead">NODE DASHBOARD</h1>
+
+                <!-- A single blog post -->
+                <section class="post">
+                    <header class="post-header">
+                        <h2 class="post-title">Login</h2>
+                    </header>
+
+                    <form class="pure-form pure-form-aligned" method="POST">
+                        {% if error %}<div class="error">{{ error }}</div>{% endif %}
+                        <fieldset>
+                            <div class="pure-control-group">
+                                <label for="name">Username</label>
+                                <input id="name" name="username" type="text" placeholder="Username">
+                            </div>
+
+                            <div class="pure-control-group">
+                                <label for="password">Password</label>
+                                <input id="password" type="password" name="password" placeholder="Password">
+                            </div>
+                            <div class="pure-controls">
+                                <button type="submit" class="pure-button pure-button-primary">Submit</button>
+                            </div>
+                        </fieldset>
+                    </form>
+                </section>
+            </div>
+{% endblock %}
