@@ -174,8 +174,7 @@ h3 {
     }
 }
 
-.error, .flash{
-    background-color: #dd514c;
+.error, .flash {
     color: #fff;
     padding: 10px;
     margin-bottom: 5px;
@@ -183,4 +182,8 @@ h3 {
 
 .flash {
     background-color: #1f8dd6;
+}
+
+.error {
+    background-color: #dd514c;
 }

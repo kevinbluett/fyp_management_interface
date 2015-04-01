@@ -168,27 +168,40 @@ class BleDfuUploader(object):
 
         # Reset Channel
         self._dfu_cmd_set(Commands.MESH_NOP)
+        timeout = 0
+        success = False
 
-        while True:
+        while timeout < 10:
             state = self.get_state()
+            print "State ", state
 
             if state == Commands.MESH_NOP:
-                print "Starting DFU cycle"
+                print "Starting Mesh cycle"
                 self._dfu_cmd_set(Commands.MESH_CONNECTION_REQUEST, addr=addr)
+                if timeout > 1:
+                    time.sleep(2)
+                timeout += 1
             elif state == Commands.MESH_CONNECTION_REQUEST:
                 print "Awaiting mesh request acknowledgement..."
                 time.sleep(2)
+                timeout += 1
             elif state == Commands.MESH_CONNECTION_REQUEST_ACK:
                 print "Ping returned... Quiting"
-                self._dfu_cmd_set(Commands.MESH_DISCONNECT_SERVER)
-                return
+                self._dfu_cmd_set(Commands.MESH_DISCONNECT_SERVER, addr=addr)
+                success = True
+                break
             else:
                 print "ERROR ERROR ERROR ERROR"
-                return
+                break
+
+        # Reset the channel
+        self._dfu_cmd_set(Commands.MESH_NOP)
+        return success
 
     # Transmit the hex image to peer device.
     def dfu_send_image(self):
         # Sending 'START DFU' 
+        success = False
         ih = iHex()
         ih.load_ihex('mesh.hex')
         byte_array = ih.get_binary()
@@ -231,10 +244,12 @@ class BleDfuUploader(object):
                 print "Sending mesh image activation"
                 # check image for validation and running
                 self._dfu_cmd_set(Commands.MESH_IMAGE_ACTIVATE)
-                exit(1)
+                success = True
+                break
             else:
                 print "ERROR ERROR ERROR ERROR"
-                exit(1)
+                break
+        return success
 
     # Disconnect from peer device if not done already and clean up. 
     def disconnect(self):
@@ -249,13 +264,15 @@ def send_ping(addr):
     ble_dfu.scan_and_connect()
     
     # Transmit the hex image to peer device.
-    ble_dfu.send_ping(addr=int(addr, 16))
+    val = ble_dfu.send_ping(addr=int(addr, 16))
     
     # wait a second to be able to recieve the disconnect event from peer device.
     time.sleep(1)
     
     # Disconnect from peer device if not done already and clean up. 
     ble_dfu.disconnect()
+
+    return val
 
 def send_dfu():
     ble_dfu = BleDfuUploader("F9:24:94:3C:C2:7A")

@@ -45,11 +45,13 @@
 
       <div class="content pure-u-1 pure-u-md-3-4">
         <div>
+          <div id="flash_messages">
           {% for message in get_flashed_messages() %}
           <div class="flash">{{ message }}</div>
           {% endfor %}
-          {% block body %}{% endblock %}
+          </div>
 
+          {% block body %}{% endblock %}
           <div class="footer">
             <div class="pure-menu pure-menu-horizontal">
               <ul>

@@ -1,11 +1,11 @@
-from flask import Flask, request, render_template, flash, redirect, url_for
+from flask import Flask, request, render_template, flash, redirect, url_for, jsonify
 app = Flask(__name__)
 
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.login import (LoginManager, login_user, logout_user, user_logged_in, current_user, user_logged_out, login_required)
 
 import ble_coms
-import hashlib, time
+import hashlib, time, json, datetime
 
 
 app = Flask(__name__)
@@ -44,6 +44,11 @@ class Node(db.Model):
     node_addr = db.Column(db.String(80), unique=True)
     primary = db.Column(db.Boolean())
     last_seen = db.Column(db.Integer)
+
+    def get_formatted_date(self):
+        if self.last_seen is None:
+            return None
+        return datetime.datetime.fromtimestamp(self.last_seen).strftime("%Y:%m:%d %H:%M:%S")
 
     def __init__(self, node_addr, primary=False):
         self.node_addr = node_addr
@@ -92,8 +97,11 @@ def node_create():
 @login_required
 def ping(node_id):
     node = Node.query.get(node_id)
-    ble_coms.send_ping(node.node_addr)
-    return "Ping'd"
+    success = ble_coms.send_ping(node.node_addr)
+    if success:
+        node.last_seen = int(time.time())
+        db.session.commit()
+    return jsonify(**{'success': success})
 
 @app.route('/logout')
 @login_required

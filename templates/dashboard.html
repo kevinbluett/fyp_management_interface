@@ -25,7 +25,7 @@
                     <tr class="{{ loop.cycle('pure-table-odd', '') }}">
                         <td>{{ node.node_addr }}</td>
                         <td>1.0</td>
-                        <td>{% if node.last_seen %}{{ node.last_seen }}{% else %}Never Seen{% endif %}</td>
+                        <td>{% if node.last_seen %}{{ node.get_formatted_date() }}{% else %}Never Seen{% endif %}</td>
                         <td><a href="/node/{{ node.id }}">View Detail</a></td>
                     </tr>
                   {% endfor %}
