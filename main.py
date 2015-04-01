@@ -4,6 +4,7 @@ app = Flask(__name__)
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.login import (LoginManager, login_user, logout_user, user_logged_in, current_user, user_logged_out, login_required)
 
+import ble_coms
 import hashlib, time
 
 
@@ -91,7 +92,7 @@ def node_create():
 @login_required
 def ping(node_id):
     node = Node.query.get(node_id)
-    time.sleep(5)
+    ble_coms.send_ping(node.node_addr)
     return "Ping'd"
 
 @app.route('/logout')
