@@ -1,10 +1,10 @@
-from flask import Flask, request, render_template, redirect, url_for
+from flask import Flask, request, render_template, flash, redirect, url_for
 app = Flask(__name__)
 
 from flask.ext.sqlalchemy import SQLAlchemy
-from flask.ext.login import (LoginManager, login_user, logout_user, user_logged_in, user_logged_out, login_required)
+from flask.ext.login import (LoginManager, login_user, logout_user, user_logged_in, current_user, user_logged_out, login_required)
 
-import hashlib
+import hashlib, time
 
 
 app = Flask(__name__)
@@ -38,6 +38,19 @@ class User(db.Model):
     def __repr__(self):
         return '<User %r>' % self.username
 
+class Node(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    node_addr = db.Column(db.String(80), unique=True)
+    primary = db.Column(db.Boolean())
+    last_seen = db.Column(db.Integer)
+
+    def __init__(self, node_addr, primary=False):
+        self.node_addr = node_addr
+        self.primary = primary
+
+    def __repr__(self):
+        return '<Node %r>' % self.node_addr
+
 @login_manager.user_loader
 def load_user(userid):
     return User.query.filter_by(id=userid).first()
@@ -48,13 +61,38 @@ def valid_login(username, password):
 
 @app.route('/')
 def index():
-    return 'Hello World!'
-
+    return redirect(url_for('login'))
 
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    return 'Dashboard'
+    nodes = Node.query.all()
+    return render_template('dashboard.html', nodes=nodes)
+
+@app.route('/node/<node_id>')
+@login_required
+def node_view(node_id):
+    node = Node.query.get(node_id)
+    return render_template('node.html', node=node)
+
+@app.route('/node/create', methods=['POST'])
+@login_required
+def node_create():
+    if "hex" in request.form:
+        node = Node(request.form['hex'])
+        db.session.add(node)
+        db.session.commit()
+        flash('New node successfully added')
+    else:
+        flash('Failed to create new node')
+    return redirect(url_for('dashboard'))
+
+@app.route('/ping/<node_id>')
+@login_required
+def ping(node_id):
+    node = Node.query.get(node_id)
+    time.sleep(5)
+    return "Ping'd"
 
 @app.route('/logout')
 @login_required
@@ -70,6 +108,7 @@ def login():
                        request.form['password']):
             user = User.query.filter_by(username=request.form['username']).first()
             login_user(user)
+            flash('You were successfully logged in')
             return redirect(url_for('dashboard'))
         else:
             error = 'Invalid username/password'

@@ -174,9 +174,13 @@ h3 {
     }
 }
 
-.error {
+.error, .flash{
     background-color: #dd514c;
     color: #fff;
     padding: 10px;
     margin-bottom: 5px;
+}
+
+.flash {
+    background-color: #1f8dd6;
 }

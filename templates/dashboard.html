@@ -1,21 +1,45 @@
 {% extends "base.html" %}
 {% block body %}
-  {% if session.logged_in %}
-    <form action="{{ url_for('add_entry') }}" method=post class=add-entry>
-      <dl>
-        <dt>Title:
-        <dd><input type=text size=30 name=title>
-        <dt>Text:
-        <dd><textarea name=text rows=5 cols=40></textarea>
-        <dd><input type=submit value=Share>
-      </dl>
-    </form>
-  {% endif %}
-  <ul class=entries>
-  {% for entry in entries %}
-    <li><h2>{{ entry.title }}</h2>{{ entry.text|safe }}
-  {% else %}
-    <li><em>Unbelievable.  No entries here so far</em>
-  {% endfor %}
-  </ul>
+  <div class="posts">
+      <h1 class="content-subhead">NODE DASHBOARD</h1>
+
+      <!-- A single blog post -->
+      <section class="post">
+          <header class="post-header">
+              <h2 class="post-title">Dashboard</h2>
+          </header>
+
+          <div>
+            <table class="pure-table">
+              <thead>
+                  <tr>
+                      <th>#</th>
+                      <th>Firmware Version</th>
+                      <th>Last Seen</th>
+                      <th>Options</th>
+                  </tr>
+              </thead>
+
+              <tbody>
+                  {% for node in nodes %}
+                    <tr class="{{ loop.cycle('pure-table-odd', '') }}">
+                        <td>{{ node.node_addr }}</td>
+                        <td>1.0</td>
+                        <td>{% if node.last_seen %}{{ node.last_seen }}{% else %}Never Seen{% endif %}</td>
+                        <td><a href="/node/{{ node.id }}">View Detail</a></td>
+                    </tr>
+                  {% endfor %}
+              </tbody>
+          </table>
+          <br />
+          <h3>Manually Add Node</h3>
+          <form class="pure-form" action="/node/create" method="POST">
+              <fieldset class="pure-group">
+                  <input type="text" class="pure-input-1-2" name="hex" placeholder="Node Hex ID">
+              </fieldset>
+              <button type="submit" class="pure-button pure-input-1-2 pure-button-secondary">Add Node</button>
+          </form>
+          </div>
+      </section>
+  </div>
 {% endblock %}
