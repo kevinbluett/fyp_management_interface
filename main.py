@@ -1,11 +1,13 @@
-from flask import Flask, request, render_template, flash, redirect, url_for, jsonify
+from flask import Flask, request, render_template, flash, redirect, url_for, jsonify, Response
 app = Flask(__name__)
+
+from cStringIO import StringIO
 
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.login import (LoginManager, login_user, logout_user, user_logged_in, current_user, user_logged_out, login_required)
 
 import ble_coms
-import hashlib, time, json, datetime
+import hashlib, time, json, datetime, itertools, subprocess, threading
 
 
 app = Flask(__name__)
@@ -75,6 +77,28 @@ def dashboard():
     nodes = Node.query.all()
     return render_template('dashboard.html', nodes=nodes)
 
+@app.route('/progress/<node_id>')
+@login_required
+def progress(node_id):
+    node = Node.query.get(node_id)
+    return render_template('progress.html', node=node)
+
+@app.route('/push_image/<node_id>')
+@login_required
+def push_image(node_id):
+    node = Node.query.get(node_id)
+    if request.headers.get('accept') == 'text/event-stream':
+        def events():
+            output = StringIO()
+            t = threading.Thread(name='child procs', target=ble_coms.send_dfu, args=[output, node.node_addr])
+            t.start()
+
+            for line in iter(output.readline,''):
+                time.sleep(.1)                           # Don't need this just shows the text streaming
+                yield line.rstrip() + '<br/>\n'
+        return Response(events(), content_type='text/event-stream')
+    return redirect(url_for('dashboard'))
+
 @app.route('/node/<node_id>')
 @login_required
 def node_view(node_id):
@@ -128,4 +152,4 @@ def login():
 if __name__ == '__main__':
     app.debug = True
     app.secret_key = '\x0f\xc1\xe9M{r\x98\x91\x85f\xa7\x8b\xdd)\x05\xc7@\xd5{\xd6\x99$V\xca'
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0', threaded=True)

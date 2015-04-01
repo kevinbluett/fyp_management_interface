@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block body %}
+  <div class="posts">
+      <h1 class="content-subhead"><a href="/dashboard">&#x2190; Return to Dashboard</a></h1>
+
+      <!-- A single blog post -->
+      <section class="post">
+          <header class="post-header">
+              <h2 class="post-title">Node Progress #{{ node.node_addr }}</h2>
+          </header>
+
+          <div id="terminal">
+          </div>
+      </section>
+  </div>
+{% endblock %}
+
+{% block page_javascript %}
+<script type="text/javascript">
+$( document ).ready(function() {
+
+  var term = $('#terminal').terminal(function(command, term) {}, {
+        greetings: 'Loading...',
+        name: 'js_demo',
+        height: 400,
+        prompt: ''});
+
+  term.echo("lolzer");
+
+  if (!!window.EventSource) {
+  var source = new EventSource('/push_image/{{ node.id }}');
+  source.onmessage = function(e) {
+    term.echo(e.data);
+  }
+}
+});
+</script>
+{% endblock %}

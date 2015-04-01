@@ -10,6 +10,7 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
     <!-- Latest compiled and minified JavaScript -->
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+    <script src="{{ url_for('static', filename='jquery.terminal-0.8.8.min.js') }}"></script>
 
     <!--[if lte IE 8]>
     <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/grids-responsive-old-ie-min.css">
@@ -20,12 +21,13 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ladda-bootstrap/0.9.4/ladda.min.css">
     <link rel=stylesheet type=text/css href="{{ url_for('static', filename='blog.css') }}">
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='jquery.terminal.css') }}">
   </head>
   <body>
     <div id="layout" class="pure-g">
       <div class="sidebar pure-u-1 pure-u-md-1-4">
         <div class="header">
-          <h1 class="brand-title">BLEsmart</h1>
+          <h1 class="brand-title">BLE smart</h1>
           <h2 class="brand-tagline">by Kevin Bluett</h2>
 
           <nav class="nav">

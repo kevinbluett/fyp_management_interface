@@ -4,6 +4,7 @@ import os
 import pexpect
 import optparse
 import time
+import sys
 from ihextools import iHex
 import numpy as np
 
@@ -199,7 +200,7 @@ class BleDfuUploader(object):
         return success
 
     # Transmit the hex image to peer device.
-    def dfu_send_image(self):
+    def dfu_send_image(self, addr=0x0AD3, output=sys.stdout):
         # Sending 'START DFU' 
         success = False
         ih = iHex()
@@ -207,47 +208,47 @@ class BleDfuUploader(object):
         byte_array = ih.get_binary()
 
         image_size = len(byte_array)
-        print "Image hex file size: ", image_size
+        output.write("Image hex file size: "+ image_size)
 
         while True:
             time.sleep(0.110)
             state = self.get_state()
-            print "state "+str(state) 
+            output.write("state "+str(state)) 
 
             if state == Commands.MESH_NOP:
                 time.sleep(0.110)
-                print "Starting DFU cycle"
+                output.write("Starting DFU cycle")
                 self._dfu_cmd_set(Commands.MESH_CONNECTION_REQUEST)
             elif state == Commands.MESH_CONNECTION_REQUEST:
-                print "Awaiting mesh request acknowledgement..."
+                output.write("Awaiting mesh request acknowledgement...")
                 time.sleep(2)
             elif state == Commands.MESH_CONNECTION_REQUEST_ACK:
-                print "Mesh connection request acknowledgement recieved"
+                output.write("Mesh connection request acknowledgement recieved")
                 self._dfu_image_info(image_size)
                 time.sleep(3)
             elif state == Commands.MESH_START_IMAGE_TRANSFER_ACK:
-                print "Starting mesh firmware image transfer..."
+                output.write("Starting mesh firmware image transfer...")
                 chunk = 1
                 total_chunks = image_size/16
                 for i in range(0, image_size, 16):
                     data_to_send = byte_array[i:i + 16]
                     self._dfu_cmd_set(Commands.MESH_DATA_IMAGE_PACKET, data=convert_array_to_hex_string(data_to_send, rv=False))
 
-                    print "Chunk # ", chunk, " of ", total_chunks
+                    output.write("Chunk # ", chunk, " of ", total_chunks)
                     ack_state = 0
                     time.sleep(5)
                     while ack_state != Commands.MESH_DATA_IMAGE_PACKET_ACK:
                         ack_state = self.get_state()
                         time.sleep(0.005)
-                    print "Chunk ACK # ", chunk, " of ", total_chunks
+                    output.write("Chunk ACK # ", chunk, " of ", total_chunks)
                     chunk += 1
-                print "Sending mesh image activation"
+                output.write("Sending mesh image activation")
                 # check image for validation and running
                 self._dfu_cmd_set(Commands.MESH_IMAGE_ACTIVATE)
                 success = True
                 break
             else:
-                print "ERROR ERROR ERROR ERROR"
+                output.write("ERROR ERROR ERROR ERROR")
                 break
         return success
 
@@ -274,14 +275,14 @@ def send_ping(addr):
 
     return val
 
-def send_dfu():
+def send_dfu(output, addr):
     ble_dfu = BleDfuUploader("F9:24:94:3C:C2:7A")
     
     # Connect to peer device.
     ble_dfu.scan_and_connect()
     
     # Transmit the hex image to peer device.
-    ble_dfu.dfu_send_image()
+    ble_dfu.dfu_send_image(addr=int(addr, 16), output=output)
     
     # wait a second to be able to recieve the disconnect event from peer device.
     time.sleep(1)
