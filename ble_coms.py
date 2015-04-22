@@ -118,7 +118,7 @@ class BleDfuUploader(object):
         except pexpect.TIMEOUT, e:
             print "timeout"
 
-    def _dfu_image_info(self, image_size,addr = 0x0AD3):
+    def _dfu_image_info(self, image_size, addr = 0x0AD3):
         opcode = Commands.MESH_START_IMAGE_TRANSFER
         print opcode
         opcode = opcode << 3;
@@ -168,7 +168,7 @@ class BleDfuUploader(object):
         print "Pinging"
 
         # Reset Channel
-        self._dfu_cmd_set(Commands.MESH_NOP)
+        self._dfu_cmd_set(Commands.MESH_NOP, addr=addr)
         timeout = 0
         success = False
 
@@ -196,61 +196,71 @@ class BleDfuUploader(object):
                 break
 
         # Reset the channel
-        self._dfu_cmd_set(Commands.MESH_NOP)
+        self._dfu_cmd_set(Commands.MESH_NOP, addr=addr)
         return success
 
     # Transmit the hex image to peer device.
-    def dfu_send_image(self, addr=0x0AD3, output=sys.stdout):
+    def dfu_send_image(self, addr=0x0AD3):
         # Sending 'START DFU' 
         success = False
         ih = iHex()
-        ih.load_ihex('mesh.hex')
+        ih.load_ihex('mesh_new.hex')
         byte_array = ih.get_binary()
 
         image_size = len(byte_array)
-        output.write("Image hex file size: "+ image_size)
+        yield ("Image hex file size: "+str(image_size)+"\n")
 
         while True:
-            time.sleep(0.110)
             state = self.get_state()
-            output.write("state "+str(state)) 
 
-            if state == Commands.MESH_NOP:
-                time.sleep(0.110)
-                output.write("Starting DFU cycle")
-                self._dfu_cmd_set(Commands.MESH_CONNECTION_REQUEST)
-            elif state == Commands.MESH_CONNECTION_REQUEST:
-                output.write("Awaiting mesh request acknowledgement...")
+            if state == Commands.MESH_NOP:  
+                yield("Starting DFU cycle\n")
+                self._dfu_cmd_set(Commands.MESH_CONNECTION_REQUEST, addr=addr)
                 time.sleep(2)
+            elif state == Commands.MESH_CONNECTION_REQUEST:
+                yield("Awaiting mesh request acknowledgement...\n")
             elif state == Commands.MESH_CONNECTION_REQUEST_ACK:
-                output.write("Mesh connection request acknowledgement recieved")
-                self._dfu_image_info(image_size)
-                time.sleep(3)
+                yield("Mesh connection request acknowledgement recieved\n")
+                self._dfu_image_info(image_size, addr=addr)
+                time.sleep(2)
             elif state == Commands.MESH_START_IMAGE_TRANSFER_ACK:
-                output.write("Starting mesh firmware image transfer...")
+                yield("Starting mesh firmware image transfer...\n")
                 chunk = 1
                 total_chunks = image_size/16
                 for i in range(0, image_size, 16):
                     data_to_send = byte_array[i:i + 16]
-                    self._dfu_cmd_set(Commands.MESH_DATA_IMAGE_PACKET, data=convert_array_to_hex_string(data_to_send, rv=False))
+                    yield("Sent Chunk # " + str(chunk) + " of " + str(total_chunks)+"\n")
+                    self._dfu_cmd_set(Commands.MESH_DATA_IMAGE_PACKET, data=convert_array_to_hex_string(data_to_send, rv=False), addr=addr)
 
-                    output.write("Chunk # ", chunk, " of ", total_chunks)
                     ack_state = 0
-                    time.sleep(5)
+                    test = 0
                     while ack_state != Commands.MESH_DATA_IMAGE_PACKET_ACK:
                         ack_state = self.get_state()
-                        time.sleep(0.005)
-                    output.write("Chunk ACK # ", chunk, " of ", total_chunks)
+                        time.sleep(0.001)
+                        test += 1
+                        if test > 60:
+                            yield "Disconnect\n"
+                            self.disconnect()
+                            time.sleep(1)
+                            yield "Scan & Connect\n"
+                            self.scan_and_connect()
+                            yield "Retrying sending mesh data packet\n"
+                            chunk -= 1
+                            i -= 1
+                            break
+                    yield("Chunk ACK # " + str(chunk) + " of " + str(total_chunks)+"\n")
                     chunk += 1
-                output.write("Sending mesh image activation")
+                yield("Sending mesh image activation\n")
                 # check image for validation and running
-                self._dfu_cmd_set(Commands.MESH_IMAGE_ACTIVATE)
+                self._dfu_cmd_set(Commands.MESH_IMAGE_ACTIVATE, addr=addr)
                 success = True
+                time.sleep(5)
+                self._dfu_cmd_set(Commands.MESH_NOP, addr=addr)
                 break
             else:
-                output.write("ERROR ERROR ERROR ERROR")
+                yield("ERROR ERROR ERROR ERROR")
                 break
-        return success
+        yield str(success)
 
     # Disconnect from peer device if not done already and clean up. 
     def disconnect(self):
@@ -275,14 +285,15 @@ def send_ping(addr):
 
     return val
 
-def send_dfu(output, addr):
+def send_dfu(addr):
     ble_dfu = BleDfuUploader("F9:24:94:3C:C2:7A")
     
     # Connect to peer device.
     ble_dfu.scan_and_connect()
     
     # Transmit the hex image to peer device.
-    ble_dfu.dfu_send_image(addr=int(addr, 16), output=output)
+    for line in ble_dfu.dfu_send_image(addr=int(addr, 16)):
+        yield "data: %s\n" % (line)
     
     # wait a second to be able to recieve the disconnect event from peer device.
     time.sleep(1)

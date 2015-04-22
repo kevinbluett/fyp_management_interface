@@ -88,15 +88,10 @@ def progress(node_id):
 def push_image(node_id):
     node = Node.query.get(node_id)
     if request.headers.get('accept') == 'text/event-stream':
-        def events():
-            output = StringIO()
-            t = threading.Thread(name='child procs', target=ble_coms.send_dfu, args=[output, node.node_addr])
-            t.start()
-
-            for line in iter(output.readline,''):
-                time.sleep(.1)                           # Don't need this just shows the text streaming
-                yield line.rstrip() + '<br/>\n'
-        return Response(events(), content_type='text/event-stream')
+        # def events():
+        #     for row in :
+        #         yield row.rstrip() + '\n'
+        return Response(ble_coms.send_dfu(node.node_addr), content_type='text/event-stream')
     return redirect(url_for('dashboard'))
 
 @app.route('/node/<node_id>')

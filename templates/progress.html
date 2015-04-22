@@ -25,11 +25,12 @@ $( document ).ready(function() {
         height: 400,
         prompt: ''});
 
-  term.echo("lolzer");
-
   if (!!window.EventSource) {
   var source = new EventSource('/push_image/{{ node.id }}');
   source.onmessage = function(e) {
+    if (e.data.indexOf("Sending mesh image activation") > -1) {
+      source.close()
+    }
     term.echo(e.data);
   }
 }
